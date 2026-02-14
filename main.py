@@ -86,7 +86,7 @@ try:
         logger.warning("OPENAI_API_KEY not found in environment variables!")
     
     llm = ChatOpenAI(
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
         temperature=0.3,
         max_tokens=2500,
         request_timeout=30,
@@ -264,3 +264,4 @@ async def health_check():
 @app.get("/")
 async def root():
     return {"message": "PromptJudge AI API is running"}
+
