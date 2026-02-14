@@ -1,6 +1,6 @@
 """
 PromptJudge AI - Backend API
-Evaluates and improves AI prompts using LangChain LCEL chains with GPT-4o-mini (configured as gpt-5-mini).
+Evaluates and improves AI prompts using LangChain LCEL chains with GPT-4o-mini.
 """
 
 import os
@@ -86,13 +86,11 @@ try:
         logger.warning("OPENAI_API_KEY not found in environment variables!")
     
     llm = ChatOpenAI(
-        model="gpt-5-mini",
+        model="gpt-4o-mini", # Using the stable identifier
         temperature=0.3,
-        max_tokens=2500,
-        request_timeout=30,
+        max_tokens=4000, # INCREASED: Prevent truncation errors on long analyses
+        request_timeout=60, # INCREASED: Give more time for long generations
         api_key=api_key,
-        # CRITICAL FIX: Force OpenAI to output valid JSON object
-        # This prevents "Invalid json output" errors by enforcing structure at the API level
         model_kwargs={"response_format": {"type": "json_object"}}
     )
 except Exception as e:
@@ -519,10 +517,10 @@ async def evaluate_prompt(request: PromptInput):
     logger.info(f"Received request: {request.prompt[:50]}...")
 
     try:
-        # Increased timeout to 45s for cold starts
+        # Increased timeout to 60s to account for longer generation times
         eval_result, improve_result = await asyncio.wait_for(
             evaluate_and_improve(request.prompt), 
-            timeout=45.0
+            timeout=60.0
         )
 
         # Calculate Score
