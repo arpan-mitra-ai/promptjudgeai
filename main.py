@@ -1,6 +1,6 @@
 """
 PromptJudge AI - Backend API
-Evaluates and improves AI prompts using LangChain LCEL chains with GPT-4o-mini.
+Evaluates and improves AI prompts using LangChain LCEL chains with GPT-4o-mini (configured as gpt-5-mini).
 """
 
 import os
@@ -39,7 +39,7 @@ app = FastAPI(
     description="AI-powered prompt evaluation and improvement service"
 )
 
-# CORS Configuration - CRITICAL FIX: Allow specific methods and headers explicitly
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allows all origins
@@ -94,10 +94,13 @@ try:
     )
 except Exception as e:
     logger.error(f"Failed to initialize LLM: {e}")
-    # We don't raise here to allow the app to start, but requests will fail gracefully
     llm = None
 
-# Evaluation Templates (kept your logic, just ensured stability)
+# ----------------------------------------------------------------------------
+# CRITICAL FIX: Double curly braces {{ }} used for JSON examples
+# Single curly braces { } used ONLY for variables like {prompt}
+# ----------------------------------------------------------------------------
+
 evaluation_system_prompt = """
 You are PromptJudge, an expert AI prompt evaluator with 10+ years of experience in prompt engineering for GPT, Claude, and other LLMs. Your evaluations are known for being thorough, specific, and actionable.
 
@@ -160,8 +163,8 @@ Example 1 - POOR PROMPT (Score ~2):
 User Prompt: "Write something about dogs"
 
 Expected Output:
-{
-  "clarity": {
+{{
+  "clarity": {{
     "score": 2,
     "issues": [
       "Quote: 'something' - Problem: Extremely vague output type, could mean anything from a sentence to a book",
@@ -169,8 +172,8 @@ Expected Output:
       "Quote: 'Write' - Problem: Generic verb with no specificity about what type of writing"
     ],
     "strengths": []
-  },
-  "context": {
+  }},
+  "context": {{
     "score": 1,
     "issues": [
       "Missing: No target audience specified",
@@ -178,8 +181,8 @@ Expected Output:
       "Missing: No domain knowledge or background provided"
     ],
     "strengths": []
-  },
-  "instructions": {
+  }},
+  "instructions": {{
     "score": 1,
     "issues": [
       "Missing: No steps or structure provided",
@@ -187,8 +190,8 @@ Expected Output:
       "Quote: Single vague request - Problem: No actionable instructions"
     ],
     "strengths": []
-  },
-  "output_format": {
+  }},
+  "output_format": {{
     "score": 1,
     "issues": [
       "Missing: No format specified (article? list? essay?)",
@@ -196,8 +199,8 @@ Expected Output:
       "Missing: No style or tone requirements"
     ],
     "strengths": []
-  },
-  "constraints": {
+  }},
+  "constraints": {{
     "score": 1,
     "issues": [
       "Missing: No constraints whatsoever",
@@ -205,15 +208,15 @@ Expected Output:
       "Missing: No quality criteria"
     ],
     "strengths": []
-  }
-}
+  }}
+}}
 
 Example 2 - EXCELLENT PROMPT (Score ~9):
 User Prompt: "Write a 500-word blog post explaining the benefits of adopting rescue dogs over buying from breeders. Target audience: first-time pet owners aged 25-35 who are considering getting a dog. Include: 1) Cost comparison with specific dollar figures, 2) Health benefits backed by veterinary research, 3) Emotional rewards with real stories. Use a warm, encouraging tone that's informative but not preachy. Format as: engaging introduction with a personal anecdote, three main sections with clear headers, and conclusion with a strong call-to-action linking to local shelters. Avoid technical veterinary jargon and don't mention specific breeds."
 
 Expected Output:
-{
-  "clarity": {
+{{
+  "clarity": {{
     "score": 9,
     "issues": [],
     "strengths": [
@@ -221,8 +224,8 @@ Expected Output:
       "Quote: 'benefits of adopting rescue dogs over buying from breeders' - Reason: Clear comparison goal with specific focus",
       "Quote: 'Include: 1) Cost comparison... 2) Health benefits... 3) Emotional rewards' - Reason: Specific content requirements enumerated"
     ]
-  },
-  "context": {
+  }},
+  "context": {{
     "score": 9,
     "issues": [],
     "strengths": [
@@ -230,16 +233,16 @@ Expected Output:
       "Quote: 'who are considering getting a dog' - Reason: Clear situational context and purpose",
       "Quote: 'with specific dollar figures' and 'backed by veterinary research' - Reason: Domain knowledge requirements specified"
     ]
-  },
-  "instructions": {
+  }},
+  "instructions": {{
     "score": 9,
     "issues": [],
     "strengths": [
       "Quote: 'Include: 1) Cost comparison... 2) Health benefits... 3) Emotional rewards' - Reason: Clear numbered structure with three distinct sections",
       "Quote: 'engaging introduction with a personal anecdote, three main sections with clear headers, and conclusion with a strong call-to-action' - Reason: Step-by-step structure with specific components"
     ]
-  },
-  "output_format": {
+  }},
+  "output_format": {{
     "score": 10,
     "issues": [],
     "strengths": [
@@ -247,8 +250,8 @@ Expected Output:
       "Quote: 'Use a warm, encouraging tone that's informative but not preachy' - Reason: Specific style and tone guidance",
       "Quote: 'Format as: engaging introduction... three main sections... conclusion' - Reason: Detailed structural template provided"
     ]
-  },
-  "constraints": {
+  }},
+  "constraints": {{
     "score": 8,
     "issues": [
       "Missing: Could specify maximum length per section for better balance"
@@ -258,15 +261,15 @@ Expected Output:
       "Quote: 'don't mention specific breeds' - Reason: Explicit constraint on content scope",
       "Quote: 'backed by veterinary research' - Reason: Quality criteria for evidence"
     ]
-  }
-}
+  }}
+}}
 
 Example 3 - MEDIUM PROMPT (Score ~5):
 User Prompt: "Explain machine learning to beginners. Make it simple."
 
 Expected Output:
-{
-  "clarity": {
+{{
+  "clarity": {{
     "score": 6,
     "issues": [
       "Quote: 'Explain' - Problem: Generic verb, doesn't specify depth or approach",
@@ -275,8 +278,8 @@ Expected Output:
     "strengths": [
       "Quote: 'machine learning' - Reason: Topic is clearly stated and specific"
     ]
-  },
-  "context": {
+  }},
+  "context": {{
     "score": 4,
     "issues": [
       "Quote: 'beginners' - Problem: Undefined audience (tech beginners? complete novices? students?)",
@@ -284,8 +287,8 @@ Expected Output:
       "Missing: No background on what knowledge to assume"
     ],
     "strengths": []
-  },
-  "instructions": {
+  }},
+  "instructions": {{
     "score": 5,
     "issues": [
       "Missing: No structure for the explanation",
@@ -295,8 +298,8 @@ Expected Output:
     "strengths": [
       "Quote: 'Explain' - Reason: Action is clear even if not detailed"
     ]
-  },
-  "output_format": {
+  }},
+  "output_format": {{
     "score": 3,
     "issues": [
       "Missing: No format specified (article? bullet points? video script?)",
@@ -304,8 +307,8 @@ Expected Output:
       "Quote: 'Make it simple' - Problem: Tone mentioned but style unclear"
     ],
     "strengths": []
-  },
-  "constraints": {
+  }},
+  "constraints": {{
     "score": 4,
     "issues": [
       "Quote: 'simple' - Problem: Vague constraint, needs definition (avoid jargon? use analogies?)",
@@ -314,18 +317,16 @@ Expected Output:
     "strengths": [
       "Quote: 'to beginners' - Reason: Implies complexity constraint even if not explicit"
     ]
-  }
-}
+  }}
+}}
 
 ---
 
 Now evaluate this prompt following the exact JSON format above:
 """
-# ... (Use the full prompt text you had before for best results) ... 
 
-# Simplified for brevity in this fix - use your full prompt strings here
 evaluation_template = ChatPromptTemplate.from_messages([
-    ("system", evaluation_system_prompt), # Use your full prompt here
+    ("system", evaluation_system_prompt),
     ("human", "{prompt}")
 ])
 
@@ -334,7 +335,7 @@ if llm:
 else:
     evaluation_chain = None
 
-# Improvement Templates
+# Improvement Templates (Double braces {{ }} for JSON examples)
 improvement_system_prompt = """
 You are a prompt improvement specialist with expertise in transforming poorly-written prompts into high-quality, production-ready prompts that consistently score 9-10 across all evaluation criteria.
 TASK:
@@ -402,7 +403,7 @@ Improved: "Explain the fundamental principles of quantum computing to software e
 
 OUTPUT FORMAT:
 You must return valid JSON with exactly these fields:
-{
+{{
   "improved_prompt": "The complete enhanced version of the prompt (2-4x longer than original)",
   "changes_made": [
     "Added specific word count: 500 words",
@@ -413,7 +414,7 @@ You must return valid JSON with exactly these fields:
   ],
   "predicted_score": 9.2,
   "improvement_summary": "Transformed vague request into structured prompt with clear audience, format, and comprehensive content requirements"
-}
+}}
 
 IMPORTANT NOTES:
 - The improved_prompt should be a complete, standalone prompt that could be used immediately
@@ -435,7 +436,7 @@ Now improve this prompt:
 """
 
 improvement_template = ChatPromptTemplate.from_messages([
-    ("system", improvement_system_prompt), # Use your full prompt here
+    ("system", improvement_system_prompt),
     ("human", "Original prompt: {prompt}\nIssues: {issues}\nScores: {scores}")
 ])
 
@@ -455,7 +456,6 @@ async def evaluate_and_improve(prompt: str):
     # Step 1: Evaluate
     try:
         # We need the full prompt text in the template for this to work well
-        # Ensuring we use the full system prompt defined in your original code
         eval_result = await evaluation_chain.ainvoke({"prompt": prompt})
     except Exception as e:
         logger.error(f"Evaluation chain failed: {e}")
@@ -466,12 +466,13 @@ async def evaluate_and_improve(prompt: str):
     all_issues = []
     scores_dict = {}
     
-    for criterion, data in eval_result.items():
-        if isinstance(data, dict):
-            scores_dict[criterion] = data.get('score', 0)
-            issues = data.get('issues', [])
-            if issues:
-                all_issues.extend(issues)
+    if isinstance(eval_result, dict):
+        for criterion, data in eval_result.items():
+            if isinstance(data, dict):
+                scores_dict[criterion] = data.get('score', 0)
+                issues = data.get('issues', [])
+                if issues:
+                    all_issues.extend(issues)
     
     # Step 3: Improve
     try:
