@@ -90,7 +90,10 @@ try:
         temperature=0.3,
         max_tokens=2500,
         request_timeout=30,
-        api_key=api_key
+        api_key=api_key,
+        # CRITICAL FIX: Force OpenAI to output valid JSON object
+        # This prevents "Invalid json output" errors by enforcing structure at the API level
+        model_kwargs={"response_format": {"type": "json_object"}}
     )
 except Exception as e:
     logger.error(f"Failed to initialize LLM: {e}")
@@ -102,7 +105,7 @@ except Exception as e:
 # ----------------------------------------------------------------------------
 
 evaluation_system_prompt = """
-You are PromptJudge, an expert AI prompt evaluator with 10+ years of experience in prompt engineering for GPT, Claude, and other LLMs. Your evaluations are known for being thorough, specific, and actionable.
+You are PromptJudge, an expert AI prompt evaluator with 10+ years of experience in prompt engineering.
 
 TASK:
 Evaluate the provided prompt on 5 criteria: clarity, context, instructions, output_format, constraints.
@@ -114,7 +117,7 @@ For each criterion:
 
 CRITICAL: Every issue and strength MUST quote the exact text from the prompt. Format: "Quote: 'exact text here' - Problem/Reason: explanation"
 
-Output ONLY valid JSON. No markdown code blocks, no explanations outside JSON, no preamble.
+Output ONLY raw JSON. Do not use markdown code blocks.
 
 ---
 
@@ -431,6 +434,8 @@ QUALITY CHECKLIST - Your improved prompt must have ALL of these:
 ✓ Format and style specified (how it should be written)
 ✓ Concrete constraints or limitations (boundaries on scope)
 ✓ No vague terms remaining (all ambiguity removed)
+
+Output ONLY raw JSON. Do not use markdown code blocks.
 
 Now improve this prompt:
 """
