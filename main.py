@@ -86,10 +86,10 @@ try:
         logger.warning("OPENAI_API_KEY not found in environment variables!")
     
     llm = ChatOpenAI(
-        model="gpt-4o-mini", # Using the stable identifier
+        model="gpt-4o-mini",
         temperature=0.3,
-        max_tokens=4000, # INCREASED: Prevent truncation errors on long analyses
-        request_timeout=60, # INCREASED: Give more time for long generations
+        max_tokens=4000, 
+        request_timeout=60, 
         api_key=api_key,
         model_kwargs={"response_format": {"type": "json_object"}}
     )
@@ -332,9 +332,10 @@ evaluation_template = ChatPromptTemplate.from_messages([
 ])
 
 if llm:
-    evaluation_chain = evaluation_template | llm | JsonOutputParser()
+    # MODIFIED: Removed JsonOutputParser from here to intercept metadata
+    evaluation_chain_raw = evaluation_template | llm 
 else:
-    evaluation_chain = None
+    evaluation_chain_raw = None
 
 # Improvement Templates (Double braces {{ }} for JSON examples)
 improvement_system_prompt = """
@@ -444,9 +445,10 @@ improvement_template = ChatPromptTemplate.from_messages([
 ])
 
 if llm:
-    improvement_chain = improvement_template | llm | JsonOutputParser()
+    # MODIFIED: Removed JsonOutputParser from here to intercept metadata
+    improvement_chain_raw = improvement_template | llm 
 else:
-    improvement_chain = None
+    improvement_chain_raw = None
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -456,10 +458,22 @@ async def evaluate_and_improve(prompt: str):
     if not llm:
         raise HTTPException(status_code=500, detail="LLM not initialized. Check server logs.")
 
+    # Instantiate Parser
+    parser = JsonOutputParser()
+
     # Step 1: Evaluate
     try:
-        # We need the full prompt text in the template for this to work well
-        eval_result = await evaluation_chain.ainvoke({"prompt": prompt})
+        # Get Raw Message first
+        eval_msg = await evaluation_chain_raw.ainvoke({"prompt": prompt})
+        
+        # Log Tokens for Evaluation
+        if hasattr(eval_msg, 'response_metadata'):
+            tokens = eval_msg.response_metadata.get('token_usage', {})
+            logger.info(f"💰 [EVALUATION] Token Usage: {tokens}")
+        
+        # Parse content
+        eval_result = parser.parse(eval_msg.content)
+        
     except Exception as e:
         logger.error(f"Evaluation chain failed: {e}")
         # Return a fallback result instead of crashing
@@ -479,11 +493,21 @@ async def evaluate_and_improve(prompt: str):
     
     # Step 3: Improve
     try:
-        improve_result = await improvement_chain.ainvoke({
+        # Get Raw Message first
+        improve_msg = await improvement_chain_raw.ainvoke({
             "prompt": prompt,
             "issues": "\n".join(all_issues) if all_issues else "Optimize for perfection.",
             "scores": str(scores_dict)
         })
+        
+        # Log Tokens for Improvement
+        if hasattr(improve_msg, 'response_metadata'):
+            tokens = improve_msg.response_metadata.get('token_usage', {})
+            logger.info(f"💰 [IMPROVEMENT] Token Usage: {tokens}")
+
+        # Parse content
+        improve_result = parser.parse(improve_msg.content)
+
     except Exception as e:
         logger.error(f"Improvement chain failed: {e}")
         improve_result = fallback_improvement(prompt)
